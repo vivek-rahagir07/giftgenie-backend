@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  // ✅ CORS (required for browser + GitHub Pages)
+  // ----- CORS -----
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -16,22 +16,24 @@ export default async function handler(req, res) {
     const { prompt } = req.body;
 
     if (!prompt) {
-      return res.status(400).json({ error: "Missing prompt" });
+      return res.status(400).json({ error: "Prompt missing" });
     }
 
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
+    const groqResponse = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://giftgenie-backend.vercel.app", // optional but recommended
-          "X-Title": "GiftGenie"
+          "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "openai/gpt-3.5-turbo",
+          model: "llama3-8b-8192",
           messages: [
+            {
+              role: "system",
+              content: "You are a helpful gift recommendation assistant."
+            },
             {
               role: "user",
               content: prompt
@@ -42,7 +44,7 @@ export default async function handler(req, res) {
       }
     );
 
-    const data = await response.json();
+    const data = await groqResponse.json();
 
     const text =
       data?.choices?.[0]?.message?.content ||
@@ -51,7 +53,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ text });
 
   } catch (error) {
-    console.error("AI Error:", error);
-    return res.status(500).json({ error: "AI generation failed" });
+    console.error("Groq error:", error);
+    return res.status(500).json({ error: "AI failed" });
   }
 }
